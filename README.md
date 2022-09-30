@@ -1,1 +1,3 @@
-# p8105_hw2_sg3889
+# Homework 2 for P8105
+
+This is the repo for Homework 2 for P8105.
