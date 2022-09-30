@@ -1,0 +1,12 @@
+---
+title: "P8105 Homework 2"
+author: "Siyue Gao"
+date: '9/30/2022'
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
