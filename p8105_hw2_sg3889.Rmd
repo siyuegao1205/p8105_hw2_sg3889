@@ -184,12 +184,12 @@ The total weight of trash collected by **Professor Trash Wheel** was `r sum(subs
 After reading in the pols-months.csv dataset, we would like to tidy it by separating `mon` into `year`, `month` and `day` (replace month number with month name using `month.name[]` and discard the `day` variable), creating a `president` variable taking values `gop` and `dem` by `pivot_longer`.
 
 ```{r}
-pols_months = read_csv("data/fivethirtyeight_datasets/pols-month.csv") %>% 
+pols = read_csv("data/fivethirtyeight_datasets/pols-month.csv") %>% 
   janitor::clean_names() %>% 
   separate(mon, into = c("year", "month", "day"), sep = "-") %>% 
-  arrange(year, month) %>% 
   mutate(
-    month = month.name[as.numeric(month)]
+    month = month.name[as.numeric(month)],
+    month = factor(month, levels = month.name)
     ) %>% 
   pivot_longer(
     cols = starts_with("prez"),
@@ -202,7 +202,7 @@ pols_months = read_csv("data/fivethirtyeight_datasets/pols-month.csv") %>%
   
 ```
 
-The following code chunk aims to tidy the snp.csv by a similar process. Note that the `year` and `month` variables are kept in the same format and same ascending sequence as in the `pols_months` dataset.
+The following code chunk aims to tidy the snp.csv by a similar process. Note that the `year` and `month` variables are kept in the same format and same ascending sequence as in the `pols` dataset.
 
 ```{r}
 snp = read_csv("data/fivethirtyeight_datasets/snp.csv") %>% 
@@ -213,16 +213,15 @@ snp = read_csv("data/fivethirtyeight_datasets/snp.csv") %>%
   separate(date, into = c("year","month"), sep = "-") %>% 
   mutate(
     year = as.numeric(year),
-    year = ifelse(year > 2015, year - 100, year)
-    ) %>% 
-  arrange(year, month) %>% 
-  mutate(
+    year = ifelse(year > 2015, year - 100, year),
     year = as.character(year),
-    month = month.name[as.numeric(month)]
-    )
+    month = month.name[as.numeric(month)],
+    month = factor(month, levels = month.name)
+    ) %>% 
+  arrange(year, month)
 ```
 
-The following code chunk aims to tidy the unemployment.csv to be merged with `pols_months` and `snp`. A `pivot_longer()` process will be necessary. Note that the `year` and `month` should be in the same format as those in the previous datasets.
+The following code chunk aims to tidy the unemployment.csv to be merged with `pols` and `snp`. A `pivot_longer()` process will be necessary. Note that the `year` and `month` should be in the same format as those in the previous datasets.
 
 ```{r}
 unemployment = read_csv("data/fivethirtyeight_datasets/unemployment.csv") %>%
@@ -235,7 +234,33 @@ unemployment = read_csv("data/fivethirtyeight_datasets/unemployment.csv") %>%
   mutate(
     year = as.character(year),
     month = str_to_title(month),
-    month = month.name[match(month, month.abb)]
+    month = month.name[match(month, month.abb)],
+    month = factor(month, levels = month.name)
   )
+```
+
+
+## Merging
+
+First, merge `snp` into `pols` and name the resulting dataset as `result`.
+
+```{r}
+result = right_join(
+  snp,
+  pols,
+  by = c("year", "month")
+  ) %>% 
+  arrange(year, month)
+```
+
+Then, merge `unemployment` into `result` to get the final version of the resulting dataset.
+
+```{r}
+result = right_join(
+  unemployment,
+  result,
+  by = c("year", "month")
+  ) %>% 
+  arrange(year, month)
 ```
 
