@@ -171,7 +171,7 @@ trash =
 
 ### Data Description
 
-The resulting dataset contains observations on `r nrow(trash)` trash wheels collected by two different projects, including `r nrow(mr_trash)` by Mr. Trash Wheel and `r nrow(pro_trash)` by Professor Trash Wheel. The data include `r ncol(trash)` variables, and are primarily describing the collected trash information at specific dumpsters at different times -- weight in tons, volume in cubic yards, amount of different types of trash, such as plastic bottles, polystyrene, cigarette butts, etc.
+The resulting dataset contains observations on `r nrow(trash)` trash wheels collected by two different projects, including `r nrow(mr_trash)` by Mr. Trash Wheel and `r nrow(pro_trash)` by Professor Trash Wheel. The data include `r ncol(trash)` variables, and are primarily describing the collected trash information at specific dumpsters at different times (for Mr. Trash Wheel, from May, 2014 to January, 2021; for Professor Trash Wheel, from Januray, 2017 to January, 2021) -- weight in tons, volume in cubic yards, amount of different types of trash, such as plastic bottles, polystyrene, cigarette butts, sports balls, etc.
 
 The total weight of trash collected by **Professor Trash Wheel** was `r sum(subset(trash, trash_wheel == "Professor Trash Wheel")$weight_tons, na.rm = TRUE)` tons. The total number of sports balls collected by **Mr. Trash Wheel** in 2020 was `r sum(subset(trash, trash_wheel == "Mr. Trash Wheel" & year == "2020")$sports_balls, na.rm = TRUE)`.
 
@@ -181,13 +181,14 @@ The total weight of trash collected by **Professor Trash Wheel** was `r sum(subs
 
 ## Reading and Cleaning
 
-After reading in the pols-months.csv dataset, we would like to tidy it by separating `mon` into `year`, `month` and `day` (replace month number with month name using `month.name[]` and discard the `day` variable), creating a `president` variable taking values `gop` and `dem` by `pivot_longer`.
+After reading in the pols-months.csv dataset, we would like to tidy it by separating `mon` into `year`, `month` and `day` (replace month number with month name using `month.name[]` and discard the `day` variable), creating a `president` variable taking values `gop` and `dem` by `pivot_longer()`. Since the `party` is a binary indicator of the president party (1 = yes, 0 = no), for me, those rows with `party` coded as 0 can be filtered out to make the dataset cleaner. 
 
 ```{r}
 pols = read_csv("data/fivethirtyeight_datasets/pols-month.csv") %>% 
   janitor::clean_names() %>% 
   separate(mon, into = c("year", "month", "day"), sep = "-") %>% 
   mutate(
+    year = as.integer(year),
     month = month.name[as.numeric(month)],
     month = factor(month, levels = month.name)
     ) %>% 
@@ -197,9 +198,12 @@ pols = read_csv("data/fivethirtyeight_datasets/pols-month.csv") %>%
     names_prefix = "prez_",
     values_to = "party"
   ) %>%
+  mutate(
+    party = ifelse(party == 2, 1, party)
+  ) %>% 
+  filter(party == 1) %>% 
   select(-day) %>% 
   select(year, month, president, party, everything())
-  
 ```
 
 The following code chunk aims to tidy the snp.csv by a similar process. Note that the `year` and `month` variables are kept in the same format and same ascending sequence as in the `pols` dataset.
@@ -214,7 +218,7 @@ snp = read_csv("data/fivethirtyeight_datasets/snp.csv") %>%
   mutate(
     year = as.numeric(year),
     year = ifelse(year > 2015, year - 100, year),
-    year = as.character(year),
+    year = as.integer(year),
     month = month.name[as.numeric(month)],
     month = factor(month, levels = month.name)
     ) %>% 
@@ -232,7 +236,7 @@ unemployment = read_csv("data/fivethirtyeight_datasets/unemployment.csv") %>%
     values_to = "unemployment"
   ) %>%
   mutate(
-    year = as.character(year),
+    year = as.integer(year),
     month = str_to_title(month),
     month = month.name[match(month, month.abb)],
     month = factor(month, levels = month.name)
@@ -264,3 +268,13 @@ result = right_join(
   arrange(year, month)
 ```
 
+
+### Data Description
+
+The `pols` dataset contains `r nrow(pols)` observations with `r ncol(pols)` variables. It describes information related to party of the president and number of national politicians who are democratic or republican at any given time from January, 1947 to June, 2015.
+
+The `snp` dataset contains `r nrow(snp)` observations with `r ncol(snp)` variables. It describes the closing values of the Standard & Poor’s (S&P) stock market index at any given time from January, 1950 to July, 2015.
+
+The `unemployment` dataset contains `r nrow(unemployment)` observations with `r ncol(unemployment)` variables. It describes the percentage of unemployment at any given time from January, 1948 to June, 2015.
+
+The resulting dataset `result` are merged by `year` and `month`, containing `r nrow(result)` observations with `r ncol(result)` variables. It summarizes the information from the previous datasets in one table and gives a more intuitive description of the potential relationship among party of the president / governor, closing values of S&P stock index, and unemployment rate at the associated time point from January, 1947 to June, 2015.
