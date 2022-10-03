@@ -131,7 +131,7 @@ Read and clean the **Mr. Trash Wheel** sheet. The following code chunk specifies
 
 ```{r}
 mr_trash = 
-  read_excel("./data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx",
+  read_excel("data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx",
              sheet = "Mr. Trash Wheel") %>% 
   janitor::clean_names() %>% 
   select(-c("x15":"x17")) %>% 
@@ -144,12 +144,13 @@ Conduct a similar process to the **Professor Trash Wheel**.
 
 ```{r}
 pro_trash = 
-  read_excel("./data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx",
+  read_excel("data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx",
              sheet = "Professor Trash Wheel") %>% 
   janitor::clean_names() %>%
   filter(!is.na(dumpster)) %>% 
   mutate(sports_balls = as.integer(round(sports_balls, digits = 0)))
 ```
+
 
 ## Combining
 
@@ -173,4 +174,68 @@ trash =
 The resulting dataset contains observations on `r nrow(trash)` trash wheels collected by two different projects, including `r nrow(mr_trash)` by Mr. Trash Wheel and `r nrow(pro_trash)` by Professor Trash Wheel. The data include `r ncol(trash)` variables, and are primarily describing the collected trash information at specific dumpsters at different times -- weight in tons, volume in cubic yards, amount of different types of trash, such as plastic bottles, polystyrene, cigarette butts, etc.
 
 The total weight of trash collected by **Professor Trash Wheel** was `r sum(subset(trash, trash_wheel == "Professor Trash Wheel")$weight_tons, na.rm = TRUE)` tons. The total number of sports balls collected by **Mr. Trash Wheel** in 2020 was `r sum(subset(trash, trash_wheel == "Mr. Trash Wheel" & year == "2020")$sports_balls, na.rm = TRUE)`.
+
+
+# Problem 3
+
+
+## Reading and Cleaning
+
+After reading in the pols-months.csv dataset, we would like to tidy it by separating `mon` into `year`, `month` and `day` (replace month number with month name using `month.name[]` and discard the `day` variable), creating a `president` variable taking values `gop` and `dem` by `pivot_longer`.
+
+```{r}
+pols_months = read_csv("data/fivethirtyeight_datasets/pols-month.csv") %>% 
+  janitor::clean_names() %>% 
+  separate(mon, into = c("year", "month", "day"), sep = "-") %>% 
+  arrange(year, month) %>% 
+  mutate(
+    month = month.name[as.numeric(month)]
+    ) %>% 
+  pivot_longer(
+    cols = starts_with("prez"),
+    names_to = "president", 
+    names_prefix = "prez_",
+    values_to = "party"
+  ) %>%
+  select(-day) %>% 
+  select(year, month, president, party, everything())
+  
+```
+
+The following code chunk aims to tidy the snp.csv by a similar process. Note that the `year` and `month` variables are kept in the same format and same ascending sequence as in the `pols_months` dataset.
+
+```{r}
+snp = read_csv("data/fivethirtyeight_datasets/snp.csv") %>% 
+  janitor::clean_names() %>% 
+  mutate(
+    date = format(as.Date(date, format = "%m/%d/%y"), "%Y-%m"),
+    ) %>% 
+  separate(date, into = c("year","month"), sep = "-") %>% 
+  mutate(
+    year = as.numeric(year),
+    year = ifelse(year > 2015, year - 100, year)
+    ) %>% 
+  arrange(year, month) %>% 
+  mutate(
+    year = as.character(year),
+    month = month.name[as.numeric(month)]
+    )
+```
+
+The following code chunk aims to tidy the unemployment.csv to be merged with `pols_months` and `snp`. A `pivot_longer()` process will be necessary. Note that the `year` and `month` should be in the same format as those in the previous datasets.
+
+```{r}
+unemployment = read_csv("data/fivethirtyeight_datasets/unemployment.csv") %>%
+  janitor::clean_names() %>% 
+  pivot_longer(
+    jan:dec,
+    names_to = "month",
+    values_to = "unemployment"
+  ) %>%
+  mutate(
+    year = as.character(year),
+    month = str_to_title(month),
+    month = month.name[match(month, month.abb)]
+  )
+```
 
