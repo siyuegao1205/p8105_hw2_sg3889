@@ -7,7 +7,7 @@ output: github_document
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(collapse = TRUE, message = FALSE)
+knitr::opts_chunk$set(collapse = TRUE, message = FALSE, warning = FALSE)
 ```
 
 ```{r}
@@ -121,4 +121,33 @@ transit_tidy_data %>%
 
 Of the stations that serve the A train, there are 17 stations that are ADA compliant.
 
+
+# Problem 2
+
+
+## Reading and Cleaning
+
+Read and clean the **Mr. Trash Wheel** sheet. The following code chunk specifies the "Mr. Trash Wheel" sheet to be imported, and omits non-data entries and rows that do not contain dumpster-specific data (the total summary rows). The number of sports balls are rounded to the nearest integer by `mutate()` and are converted to an integer variable afterward by `as.interger()`.
+
+```{r}
+mr_trash = 
+  read_excel("./data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx",
+             sheet = "Mr. Trash Wheel") %>% 
+  janitor::clean_names() %>% 
+  select(-c("x15":"x17")) %>% 
+  mutate(dumpster = as.numeric(dumpster)) %>% 
+  filter(!is.na(dumpster)) %>% 
+  mutate(sports_balls = as.integer(round(sports_balls, digits = 0)))
+```
+
+Conduct a similar process to the **Professor Trash Wheel**.
+
+```{r}
+pro_trash = 
+  read_excel("./data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx",
+             sheet = "Professor Trash Wheel") %>% 
+  janitor::clean_names() %>%
+  filter(!is.na(dumpster)) %>% 
+  mutate(sports_balls = as.integer(round(sports_balls, digits = 0)))
+```
 
