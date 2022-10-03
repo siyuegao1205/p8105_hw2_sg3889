@@ -151,3 +151,26 @@ pro_trash =
   mutate(sports_balls = as.integer(round(sports_balls, digits = 0)))
 ```
 
+## Combining
+
+Use `bind_rows()` to combine the two trash wheel datasets together. Add a new variable called `trash_wheel` to keep track of which Trash Wheel is which.
+
+```{r}
+mr_trash = mr_trash %>% 
+  mutate(trash_wheel = "Mr. Trash Wheel")
+
+pro_trash = pro_trash %>% 
+  mutate(trash_wheel = "Professor Trash Wheel")
+
+trash = 
+  bind_rows(mr_trash, pro_trash) %>%
+  select(trash_wheel, everything())
+```
+
+
+### Data Description
+
+The resulting dataset contains observations on `r nrow(trash)` trash wheels collected by two different projects, including `r nrow(mr_trash)` by Mr. Trash Wheel and `r nrow(pro_trash)` by Professor Trash Wheel. The data include `r ncol(trash)` variables, and are primarily describing the collected trash information at specific dumpsters at different times -- weight in tons, volume in cubic yards, amount of different types of trash, such as plastic bottles, polystyrene, cigarette butts, etc.
+
+The total weight of trash collected by **Professor Trash Wheel** was `r sum(subset(trash, trash_wheel == "Professor Trash Wheel")$weight_tons, na.rm = TRUE)` tons. The total number of sports balls collected by **Mr. Trash Wheel** in 2020 was `r sum(subset(trash, trash_wheel == "Mr. Trash Wheel" & year == "2020")$sports_balls, na.rm = TRUE)`.
+
