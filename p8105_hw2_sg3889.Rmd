@@ -132,7 +132,9 @@ Read and clean the **Mr. Trash Wheel** sheet. The following code chunk specifies
 ```{r}
 mr_trash = 
   read_excel("data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx",
-             sheet = "Mr. Trash Wheel") %>% 
+             sheet = "Mr. Trash Wheel",
+             skip = 1
+             ) %>% 
   janitor::clean_names() %>% 
   select(-c("x15":"x17")) %>% 
   mutate(dumpster = as.numeric(dumpster)) %>% 
@@ -145,7 +147,9 @@ Conduct a similar process to the **Professor Trash Wheel**.
 ```{r}
 pro_trash = 
   read_excel("data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx",
-             sheet = "Professor Trash Wheel") %>% 
+             sheet = "Professor Trash Wheel",
+             skip = 1
+             ) %>% 
   janitor::clean_names() %>%
   filter(!is.na(dumpster)) %>% 
   mutate(sports_balls = as.integer(round(sports_balls, digits = 0)))
@@ -181,7 +185,7 @@ The total weight of trash collected by **Professor Trash Wheel** was `r sum(subs
 
 ## Reading and Cleaning
 
-After reading in the pols-months.csv dataset, we would like to tidy it by separating `mon` into `year`, `month` and `day` (replace month number with month name using `month.name[]` and discard the `day` variable), creating a `president` variable taking values `gop` and `dem` by `pivot_longer()`. Since the `party` is a binary indicator of the president party (1 = yes, 0 = no), for me, those rows with `party` coded as 0 can be filtered out to make the dataset cleaner. 
+After reading in the pols-months.csv dataset, we would like to tidy it by separating `mon` into `year`, `month` and `day` (replace month number with month name using `month.name[]` and discard the `day` variable), creating a `president` variable taking values `gop` and `dem` by `mutate()`.
 
 ```{r}
 pols = read_csv("data/fivethirtyeight_datasets/pols-month.csv") %>% 
@@ -190,20 +194,11 @@ pols = read_csv("data/fivethirtyeight_datasets/pols-month.csv") %>%
   mutate(
     year = as.integer(year),
     month = month.name[as.numeric(month)],
-    month = factor(month, levels = month.name)
+    month = factor(month, levels = month.name),
+    president = ifelse(prez_dem == 0, "gop", "dem")
     ) %>% 
-  pivot_longer(
-    cols = starts_with("prez"),
-    names_to = "president", 
-    names_prefix = "prez_",
-    values_to = "party"
-  ) %>%
-  mutate(
-    party = ifelse(party == 2, 1, party)
-  ) %>% 
-  filter(party == 1) %>% 
-  select(-day) %>% 
-  select(year, month, president, party, everything())
+  select(-c("day", "prez_gop", "prez_dem")) %>% 
+  select(year, month, president, everything())
 ```
 
 The following code chunk aims to tidy the snp.csv by a similar process. Note that the `year` and `month` variables are kept in the same format and same ascending sequence as in the `pols` dataset.
@@ -216,9 +211,8 @@ snp = read_csv("data/fivethirtyeight_datasets/snp.csv") %>%
     ) %>% 
   separate(date, into = c("year","month"), sep = "-") %>% 
   mutate(
-    year = as.numeric(year),
-    year = ifelse(year > 2015, year - 100, year),
     year = as.integer(year),
+    year = ifelse(year > 2015, year - 100, year),
     month = month.name[as.numeric(month)],
     month = factor(month, levels = month.name)
     ) %>% 
@@ -234,13 +228,13 @@ unemployment = read_csv("data/fivethirtyeight_datasets/unemployment.csv") %>%
     jan:dec,
     names_to = "month",
     values_to = "unemployment"
-  ) %>%
+    ) %>%
   mutate(
     year = as.integer(year),
     month = str_to_title(month),
     month = month.name[match(month, month.abb)],
     month = factor(month, levels = month.name)
-  )
+    )
 ```
 
 
