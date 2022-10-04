@@ -127,32 +127,35 @@ Of the stations that serve the A train, there are 17 stations that are ADA compl
 
 ## Reading and Cleaning
 
-Read and clean the **Mr. Trash Wheel** sheet. The following code chunk specifies the "Mr. Trash Wheel" sheet to be imported, and omits non-data entries and rows that do not contain dumpster-specific data (the total summary rows). The number of sports balls are rounded to the nearest integer by `mutate()` and are converted to an integer variable afterward by `as.interger()`.
+Read and clean the **Mr. Trash Wheel** sheet. The following code chunk specifies the "Mr. Trash Wheel" sheet to be imported, and omits non-data entries and rows that do not contain dumpster-specific data (the total summary rows). The number of sports balls are rounded to the nearest integer by `round()` and are converted to an integer variable afterward by `as.interger()`.
 
 ```{r}
 mr_trash = 
-  read_excel("data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx",
+  read_excel("data/Trash Wheel Collection Data.xlsx",
              sheet = "Mr. Trash Wheel",
              skip = 1
              ) %>% 
   janitor::clean_names() %>% 
-  select(-c("x15":"x17")) %>% 
-  mutate(dumpster = as.numeric(dumpster)) %>% 
+  select(c("dumpster":"homes_powered")) %>% 
   filter(!is.na(dumpster)) %>% 
   mutate(sports_balls = as.integer(round(sports_balls, digits = 0)))
 ```
 
-Conduct a similar process to the **Professor Trash Wheel**.
+Conduct a similar process to the **Professor Trash Wheel**. However, the updated version dataset does not contain a column for sports balls. I create one and relocate it at the same position as it is in `mr_trash`, making the two datasets have the same "structure" to be combined.
 
 ```{r}
 pro_trash = 
-  read_excel("data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx",
+  read_excel("data/Trash Wheel Collection Data.xlsx",
              sheet = "Professor Trash Wheel",
              skip = 1
              ) %>% 
   janitor::clean_names() %>%
   filter(!is.na(dumpster)) %>% 
-  mutate(sports_balls = as.integer(round(sports_balls, digits = 0)))
+  mutate(
+    sports_balls = as.integer(NA),
+    year = as.character(year)
+    ) %>% 
+  relocate(sports_balls, .before = homes_powered)
 ```
 
 
@@ -175,7 +178,7 @@ trash =
 
 ### Data Description
 
-The resulting dataset contains observations on `r nrow(trash)` trash wheels collected by two different projects, including `r nrow(mr_trash)` by Mr. Trash Wheel and `r nrow(pro_trash)` by Professor Trash Wheel. The data include `r ncol(trash)` variables, and are primarily describing the collected trash information at specific dumpsters at different times (for Mr. Trash Wheel, from May, 2014 to January, 2021; for Professor Trash Wheel, from Januray, 2017 to January, 2021) -- weight in tons, volume in cubic yards, amount of different types of trash, such as plastic bottles, polystyrene, cigarette butts, sports balls, etc.
+The resulting dataset contains observations on `r nrow(trash)` trash wheels collected by two different projects, including `r nrow(mr_trash)` by Mr. Trash Wheel and `r nrow(pro_trash)` by Professor Trash Wheel. The data include `r ncol(trash)` variables, and are primarily describing the collected trash information at specific dumpsters at different times (for Mr. Trash Wheel, from May, 2014 to July, 2022; for Professor Trash Wheel, from January, 2017 to July, 2022). Some key variables of trash collected information are weight in tons, volume in cubic yards, amount of different types of trash, such as plastic bottles, polystyrene, cigarette butts, glass bottles, etc.
 
 The total weight of trash collected by **Professor Trash Wheel** was `r sum(subset(trash, trash_wheel == "Professor Trash Wheel")$weight_tons, na.rm = TRUE)` tons. The total number of sports balls collected by **Mr. Trash Wheel** in 2020 was `r sum(subset(trash, trash_wheel == "Mr. Trash Wheel" & year == "2020")$sports_balls, na.rm = TRUE)`.
 
@@ -185,7 +188,9 @@ The total weight of trash collected by **Professor Trash Wheel** was `r sum(subs
 
 ## Reading and Cleaning
 
-After reading in the pols-months.csv dataset, we would like to tidy it by separating `mon` into `year`, `month` and `day` (replace month number with month name using `month.name[]` and discard the `day` variable), creating a `president` variable taking values `gop` and `dem` by `mutate()`.
+After reading in the pols-months.csv dataset, we would like to tidy it by separating `mon` into `year`, `month` and `day` (replace month number with month name using `month.name[]` and discard the `day` variable).
+
+Note that there are some "2"s in the `prez_gop` column, for me it's likely to be mis-coded, after manually checking by `group_by()` and `count()` commands. However, the `prez_dem` column seems to be correct, with only "0" and "1", and the total count of "1"s and "2"s in `prez_gop` column matches perfectly with the count of "0"s in `prez_dem` column, which is reasonable. In this case, I create a `president` variable taking values `gop` and `dem` by `ifelse()` inside of `mutate()`, where I use `prez_dem == 0` or not as the judging argument.
 
 ```{r}
 pols = read_csv("data/fivethirtyeight_datasets/pols-month.csv") %>% 
@@ -201,7 +206,7 @@ pols = read_csv("data/fivethirtyeight_datasets/pols-month.csv") %>%
   select(year, month, president, everything())
 ```
 
-The following code chunk aims to tidy the snp.csv by a similar process. Note that the `year` and `month` variables are kept in the same format and same ascending sequence as in the `pols` dataset.
+The following code chunk aims to tidy up the snp.csv by a similar process. Note that the `year` and `month` variables are kept in the same format and the same ascending sequence as in the `pols` dataset.
 
 ```{r}
 snp = read_csv("data/fivethirtyeight_datasets/snp.csv") %>% 
@@ -211,7 +216,7 @@ snp = read_csv("data/fivethirtyeight_datasets/snp.csv") %>%
     ) %>% 
   separate(date, into = c("year","month"), sep = "-") %>% 
   mutate(
-    year = as.integer(year),
+    year = as.numeric(year),
     year = ifelse(year > 2015, year - 100, year),
     month = month.name[as.numeric(month)],
     month = factor(month, levels = month.name)
@@ -230,7 +235,6 @@ unemployment = read_csv("data/fivethirtyeight_datasets/unemployment.csv") %>%
     values_to = "unemployment"
     ) %>%
   mutate(
-    year = as.integer(year),
     month = str_to_title(month),
     month = month.name[match(month, month.abb)],
     month = factor(month, levels = month.name)
@@ -271,4 +275,4 @@ The `snp` dataset contains `r nrow(snp)` observations with `r ncol(snp)` variabl
 
 The `unemployment` dataset contains `r nrow(unemployment)` observations with `r ncol(unemployment)` variables. It describes the percentage of unemployment at any given time from January, 1948 to June, 2015.
 
-The resulting dataset `result` are merged by `year` and `month`, containing `r nrow(result)` observations with `r ncol(result)` variables. It summarizes the information from the previous datasets in one table and gives a more intuitive description of the potential relationship among party of the president / governor, closing values of S&P stock index, and unemployment rate at the associated time point from January, 1947 to June, 2015.
+The resulting dataset `result` are merged by `year` and `month`, containing `r nrow(result)` observations with `r ncol(result)` variables. It summarizes the information from the previous datasets in one table and gives a more intuitive description of the potential relationship among party of the president (`president`) / governor, closing values of S&P stock index (`close`), and unemployment rate (`unemployment`) at the associated time point from January, 1947 to June, 2015.
